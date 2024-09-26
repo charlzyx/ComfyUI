@@ -12,6 +12,7 @@ import json
 import glob
 import struct
 import ssl
+import oss
 from PIL import Image, ImageOps
 from PIL.PngImagePlugin import PngInfo
 from io import BytesIO
@@ -254,10 +255,36 @@ class PromptServer():
             else:
                 return web.Response(status=400)
 
+        def minio_image_upload(post):
+            image = post.get("image")
+            overwrite = post.get("overwrite")
+            image_is_duplicate = False
+
+            image_upload_type = post.get("type")
+            upload_dir, image_upload_type = get_dir_by_type(image_upload_type)
+
+            if image and image.file:
+                filename = image.filename
+                if not filename:
+                    return web.Response(status=400)
+
+                subfolder = post.get("subfolder", "")
+             
+    
+                ret = oss.oss_image_save(filename, image.file)
+                print(
+                    "filename", filename, "Oss ret", ret
+                )
+
+                return web.json_response({"name" : ret, "subfolder": subfolder, "type": image_upload_type})
+            else:
+                return web.Response(status=400)
+
         @routes.post("/upload/image")
         async def upload_image(request):
             post = await request.post()
-            return image_upload(post)
+            return minio_image_upload(post) 
+            # return minio_image_upload(post)
 
 
         @routes.post("/upload/mask")

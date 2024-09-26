@@ -1546,7 +1546,6 @@ class LoadImage:
     FUNCTION = "load_image"
     def load_image(self, image):
         image_path = folder_paths.get_annotated_filepath(image)
-        
         img = node_helpers.pillow(Image.open, image_path)
         
         output_images = []

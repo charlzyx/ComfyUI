@@ -1,0 +1,16 @@
+version: "3.0"
+
+services:
+  minio:
+    image: quay.io/minio/minio
+    environment:
+      MINIO_API_CORS_ALLOW_ORIGIN: "*"
+      # MINIO_ACCESS_KEY: oABL0ViXVpZU3EpGHbnM
+      # MINIO_SECRET_KEY: gOMLiSR2KgERaQXGcsNkjB3VJnoQhP5Pb4CnyLBP
+    # ports:
+    #   - "9000:9000"
+    #   - "9001:9001"
+    network_mode: host
+    command: "server /data --console-address :9001"
+    volumes:
+      - ".docker/minio_data:/data"
