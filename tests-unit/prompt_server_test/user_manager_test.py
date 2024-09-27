@@ -80,9 +80,7 @@ async def test_listuserdata_split_path(aiohttp_client, app, tmp_path):
     client = await aiohttp_client(app)
     resp = await client.get("/userdata?dir=test_dir&recurse=true&split=true")
     assert resp.status == 200
-    assert await resp.json() == [
-        ["subdir/file1.txt", "subdir", "file1.txt"]
-    ]
+    assert await resp.json() == [["subdir/file1.txt", "subdir", "file1.txt"]]
 
 
 async def test_listuserdata_invalid_directory(aiohttp_client, app):

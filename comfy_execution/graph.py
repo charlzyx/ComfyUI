@@ -2,14 +2,18 @@ import nodes
 
 from comfy_execution.graph_utils import is_link
 
+
 class DependencyCycleError(Exception):
     pass
+
 
 class NodeInputError(Exception):
     pass
 
+
 class NodeNotFoundError(Exception):
     pass
+
 
 class DynamicPrompt:
     def __init__(self, original_prompt):
@@ -54,6 +58,7 @@ class DynamicPrompt:
     def get_original_prompt(self):
         return self.original_prompt
 
+
 def get_input_info(class_def, input_name):
     valid_inputs = class_def.INPUT_TYPES()
     input_info = None
@@ -76,12 +81,13 @@ def get_input_info(class_def, input_name):
         extra_info = {}
     return input_type, input_category, extra_info
 
+
 class TopologicalSort:
     def __init__(self, dynprompt):
         self.dynprompt = dynprompt
         self.pendingNodes = {}
-        self.blockCount = {} # Number of nodes this node is directly blocked by
-        self.blocking = {} # Which nodes are blocked by this node
+        self.blockCount = {}  # Number of nodes this node is directly blocked by
+        self.blocking = {}  # Which nodes are blocked by this node
 
     def get_input_info(self, unique_id, input_name):
         class_type = self.dynprompt.get_node(unique_id)["class_type"]
@@ -91,10 +97,14 @@ class TopologicalSort:
     def make_input_strong_link(self, to_node_id, to_input):
         inputs = self.dynprompt.get_node(to_node_id)["inputs"]
         if to_input not in inputs:
-            raise NodeInputError(f"Node {to_node_id} says it needs input {to_input}, but there is no input to that node at all")
+            raise NodeInputError(
+                f"Node {to_node_id} says it needs input {to_input}, but there is no input to that node at all"
+            )
         value = inputs[to_input]
         if not is_link(value):
-            raise NodeInputError(f"Node {to_node_id} says it needs input {to_input}, but that value is a constant")
+            raise NodeInputError(
+                f"Node {to_node_id} says it needs input {to_input}, but that value is a constant"
+            )
         from_node_id, from_socket = value
         self.add_strong_link(from_node_id, from_socket, to_node_id)
 
@@ -124,14 +134,25 @@ class TopologicalSort:
                 value = inputs[input_name]
                 if is_link(value):
                     from_node_id, from_socket = value
-                    if subgraph_nodes is not None and from_node_id not in subgraph_nodes:
+                    if (
+                        subgraph_nodes is not None
+                        and from_node_id not in subgraph_nodes
+                    ):
                         continue
-                    input_type, input_category, input_info = self.get_input_info(unique_id, input_name)
-                    is_lazy = input_info is not None and "lazy" in input_info and input_info["lazy"]
-                    if (include_lazy or not is_lazy) and not self.is_cached(from_node_id):
+                    input_type, input_category, input_info = self.get_input_info(
+                        unique_id, input_name
+                    )
+                    is_lazy = (
+                        input_info is not None
+                        and "lazy" in input_info
+                        and input_info["lazy"]
+                    )
+                    if (include_lazy or not is_lazy) and not self.is_cached(
+                        from_node_id
+                    ):
                         node_ids.append(from_node_id)
                         links.append((from_node_id, from_socket, unique_id))
-                        
+
         for link in links:
             self.add_strong_link(*link)
 
@@ -139,7 +160,9 @@ class TopologicalSort:
         return False
 
     def get_ready_nodes(self):
-        return [node_id for node_id in self.pendingNodes if self.blockCount[node_id] == 0]
+        return [
+            node_id for node_id in self.pendingNodes if self.blockCount[node_id] == 0
+        ]
 
     def pop_node(self, unique_id):
         del self.pendingNodes[unique_id]
@@ -150,11 +173,13 @@ class TopologicalSort:
     def is_empty(self):
         return len(self.pendingNodes) == 0
 
+
 class ExecutionList(TopologicalSort):
     """
     ExecutionList implements a topological dissolve of the graph. After a node is staged for execution,
     it can still be returned to the graph after having further dependencies added.
     """
+
     def __init__(self, dynprompt, output_cache):
         super().__init__(dynprompt)
         self.output_cache = output_cache
@@ -184,7 +209,7 @@ class ExecutionList(TopologicalSort):
                 "exception_message": str(ex),
                 "exception_type": "graph.DependencyCycleError",
                 "traceback": [],
-                "current_inputs": []
+                "current_inputs": [],
             }
             return None, error_details, ex
 
@@ -199,7 +224,7 @@ class ExecutionList(TopologicalSort):
         def is_output(node_id):
             class_type = self.dynprompt.get_node(node_id)["class_type"]
             class_def = nodes.NODE_CLASS_MAPPINGS[class_type]
-            if hasattr(class_def, 'OUTPUT_NODE') and class_def.OUTPUT_NODE == True:
+            if hasattr(class_def, "OUTPUT_NODE") and class_def.OUTPUT_NODE == True:
                 return True
             return False
 
@@ -207,20 +232,20 @@ class ExecutionList(TopologicalSort):
             if is_output(node_id):
                 return node_id
 
-        #This should handle the VAEDecode -> preview case
+        # This should handle the VAEDecode -> preview case
         for node_id in node_list:
             for blocked_node_id in self.blocking[node_id]:
                 if is_output(blocked_node_id):
                     return node_id
 
-        #This should handle the VAELoader -> VAEDecode -> preview case
+        # This should handle the VAELoader -> VAEDecode -> preview case
         for node_id in node_list:
             for blocked_node_id in self.blocking[node_id]:
                 for blocked_node_id1 in self.blocking[blocked_node_id]:
                     if is_output(blocked_node_id1):
                         return node_id
 
-        #TODO: this function should be improved
+        # TODO: this function should be improved
         return node_list[0]
 
     def unstage_node_execution(self):
@@ -236,7 +261,7 @@ class ExecutionList(TopologicalSort):
         # We'll dissolve the graph in reverse topological order to leave only the nodes in the cycle.
         # We're skipping some of the performance optimizations from the original TopologicalSort to keep
         # the code simple (and because having a cycle in the first place is a catastrophic error)
-        blocked_by = { node_id: {} for node_id in self.pendingNodes }
+        blocked_by = {node_id: {} for node_id in self.pendingNodes}
         for from_node_id in self.blocking:
             for to_node_id in self.blocking[from_node_id]:
                 if True in self.blocking[from_node_id][to_node_id].values():
@@ -248,8 +273,11 @@ class ExecutionList(TopologicalSort):
                     if node_id in blocked_by[to_node_id]:
                         del blocked_by[to_node_id][node_id]
                 del blocked_by[node_id]
-            to_remove = [node_id for node_id in blocked_by if len(blocked_by[node_id]) == 0]
+            to_remove = [
+                node_id for node_id in blocked_by if len(blocked_by[node_id]) == 0
+            ]
         return list(blocked_by.keys())
+
 
 class ExecutionBlocker:
     """
@@ -265,6 +293,6 @@ class ExecutionBlocker:
        (I would recommend not making nodes like this in the future -- instead, make multiple nodes with
        different outputs. Unfortunately, there are several popular existing nodes using this pattern.)
     """
+
     def __init__(self, message):
         self.message = message
-

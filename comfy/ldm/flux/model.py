@@ -1,4 +1,4 @@
-#Original code can be found on: https://github.com/black-forest-labs/flux
+# Original code can be found on: https://github.com/black-forest-labs/flux
 
 from dataclasses import dataclass
 
@@ -16,6 +16,7 @@ from .layers import (
 
 from einops import rearrange, repeat
 import comfy.ldm.common_dit
+
 
 @dataclass
 class FluxParams:
@@ -38,7 +39,15 @@ class Flux(nn.Module):
     Transformer model for flow matching on sequences.
     """
 
-    def __init__(self, image_model=None, final_layer=True, dtype=None, device=None, operations=None, **kwargs):
+    def __init__(
+        self,
+        image_model=None,
+        final_layer=True,
+        dtype=None,
+        device=None,
+        operations=None,
+        **kwargs,
+    ):
         super().__init__()
         self.dtype = dtype
         params = FluxParams(**kwargs)
@@ -51,17 +60,45 @@ class Flux(nn.Module):
             )
         pe_dim = params.hidden_size // params.num_heads
         if sum(params.axes_dim) != pe_dim:
-            raise ValueError(f"Got {params.axes_dim} but expected positional dim {pe_dim}")
+            raise ValueError(
+                f"Got {params.axes_dim} but expected positional dim {pe_dim}"
+            )
         self.hidden_size = params.hidden_size
         self.num_heads = params.num_heads
-        self.pe_embedder = EmbedND(dim=pe_dim, theta=params.theta, axes_dim=params.axes_dim)
-        self.img_in = operations.Linear(self.in_channels, self.hidden_size, bias=True, dtype=dtype, device=device)
-        self.time_in = MLPEmbedder(in_dim=256, hidden_dim=self.hidden_size, dtype=dtype, device=device, operations=operations)
-        self.vector_in = MLPEmbedder(params.vec_in_dim, self.hidden_size, dtype=dtype, device=device, operations=operations)
-        self.guidance_in = (
-            MLPEmbedder(in_dim=256, hidden_dim=self.hidden_size, dtype=dtype, device=device, operations=operations) if params.guidance_embed else nn.Identity()
+        self.pe_embedder = EmbedND(
+            dim=pe_dim, theta=params.theta, axes_dim=params.axes_dim
         )
-        self.txt_in = operations.Linear(params.context_in_dim, self.hidden_size, dtype=dtype, device=device)
+        self.img_in = operations.Linear(
+            self.in_channels, self.hidden_size, bias=True, dtype=dtype, device=device
+        )
+        self.time_in = MLPEmbedder(
+            in_dim=256,
+            hidden_dim=self.hidden_size,
+            dtype=dtype,
+            device=device,
+            operations=operations,
+        )
+        self.vector_in = MLPEmbedder(
+            params.vec_in_dim,
+            self.hidden_size,
+            dtype=dtype,
+            device=device,
+            operations=operations,
+        )
+        self.guidance_in = (
+            MLPEmbedder(
+                in_dim=256,
+                hidden_dim=self.hidden_size,
+                dtype=dtype,
+                device=device,
+                operations=operations,
+            )
+            if params.guidance_embed
+            else nn.Identity()
+        )
+        self.txt_in = operations.Linear(
+            params.context_in_dim, self.hidden_size, dtype=dtype, device=device
+        )
 
         self.double_blocks = nn.ModuleList(
             [
@@ -70,7 +107,9 @@ class Flux(nn.Module):
                     self.num_heads,
                     mlp_ratio=params.mlp_ratio,
                     qkv_bias=params.qkv_bias,
-                    dtype=dtype, device=device, operations=operations
+                    dtype=dtype,
+                    device=device,
+                    operations=operations,
                 )
                 for _ in range(params.depth)
             ]
@@ -78,13 +117,27 @@ class Flux(nn.Module):
 
         self.single_blocks = nn.ModuleList(
             [
-                SingleStreamBlock(self.hidden_size, self.num_heads, mlp_ratio=params.mlp_ratio, dtype=dtype, device=device, operations=operations)
+                SingleStreamBlock(
+                    self.hidden_size,
+                    self.num_heads,
+                    mlp_ratio=params.mlp_ratio,
+                    dtype=dtype,
+                    device=device,
+                    operations=operations,
+                )
                 for _ in range(params.depth_single_blocks)
             ]
         )
 
         if final_layer:
-            self.final_layer = LastLayer(self.hidden_size, 1, self.out_channels, dtype=dtype, device=device, operations=operations)
+            self.final_layer = LastLayer(
+                self.hidden_size,
+                1,
+                self.out_channels,
+                dtype=dtype,
+                device=device,
+                operations=operations,
+            )
 
     def forward_orig(
         self,
@@ -105,8 +158,12 @@ class Flux(nn.Module):
         vec = self.time_in(timestep_embedding(timesteps, 256).to(img.dtype))
         if self.params.guidance_embed:
             if guidance is None:
-                raise ValueError("Didn't get guidance strength for guidance distilled model.")
-            vec = vec + self.guidance_in(timestep_embedding(guidance, 256).to(img.dtype))
+                raise ValueError(
+                    "Didn't get guidance strength for guidance distilled model."
+                )
+            vec = vec + self.guidance_in(
+                timestep_embedding(guidance, 256).to(img.dtype)
+            )
 
         vec = vec + self.vector_in(y)
         txt = self.txt_in(txt)
@@ -117,7 +174,7 @@ class Flux(nn.Module):
         for i, block in enumerate(self.double_blocks):
             img, txt = block(img=img, txt=txt, vec=vec, pe=pe)
 
-            if control is not None: # Controlnet
+            if control is not None:  # Controlnet
                 control_i = control.get("input")
                 if i < len(control_i):
                     add = control_i[i]
@@ -129,7 +186,7 @@ class Flux(nn.Module):
         for i, block in enumerate(self.single_blocks):
             img = block(img, vec=vec, pe=pe)
 
-            if control is not None: # Controlnet
+            if control is not None:  # Controlnet
                 control_o = control.get("output")
                 if i < len(control_o):
                     add = control_o[i]
@@ -146,15 +203,31 @@ class Flux(nn.Module):
         patch_size = 2
         x = comfy.ldm.common_dit.pad_to_patch_size(x, (patch_size, patch_size))
 
-        img = rearrange(x, "b c (h ph) (w pw) -> b (h w) (c ph pw)", ph=patch_size, pw=patch_size)
+        img = rearrange(
+            x, "b c (h ph) (w pw) -> b (h w) (c ph pw)", ph=patch_size, pw=patch_size
+        )
 
-        h_len = ((h + (patch_size // 2)) // patch_size)
-        w_len = ((w + (patch_size // 2)) // patch_size)
+        h_len = (h + (patch_size // 2)) // patch_size
+        w_len = (w + (patch_size // 2)) // patch_size
         img_ids = torch.zeros((h_len, w_len, 3), device=x.device, dtype=x.dtype)
-        img_ids[..., 1] = img_ids[..., 1] + torch.linspace(0, h_len - 1, steps=h_len, device=x.device, dtype=x.dtype)[:, None]
-        img_ids[..., 2] = img_ids[..., 2] + torch.linspace(0, w_len - 1, steps=w_len, device=x.device, dtype=x.dtype)[None, :]
+        img_ids[..., 1] = (
+            img_ids[..., 1]
+            + torch.linspace(0, h_len - 1, steps=h_len, device=x.device, dtype=x.dtype)[
+                :, None
+            ]
+        )
+        img_ids[..., 2] = (
+            img_ids[..., 2]
+            + torch.linspace(0, w_len - 1, steps=w_len, device=x.device, dtype=x.dtype)[
+                None, :
+            ]
+        )
         img_ids = repeat(img_ids, "h w c -> b (h w) c", b=bs)
 
         txt_ids = torch.zeros((bs, context.shape[1], 3), device=x.device, dtype=x.dtype)
-        out = self.forward_orig(img, img_ids, context, txt_ids, timestep, y, guidance, control)
-        return rearrange(out, "b (h w) (c ph pw) -> b c (h ph) (w pw)", h=h_len, w=w_len, ph=2, pw=2)[:,:,:h,:w]
+        out = self.forward_orig(
+            img, img_ids, context, txt_ids, timestep, y, guidance, control
+        )
+        return rearrange(
+            out, "b (h w) (c ph pw) -> b c (h ph) (w pw)", h=h_len, w=w_len, ph=2, pw=2
+        )[:, :, :h, :w]

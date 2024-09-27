@@ -84,24 +84,27 @@ def test_init_frontend_invalid_provider():
     with pytest.raises(HTTPError):
         FrontendManager.init_frontend_unsafe(version_string)
 
+
 @pytest.fixture
 def mock_os_functions():
-    with patch('app.frontend_management.os.makedirs') as mock_makedirs, \
-         patch('app.frontend_management.os.listdir') as mock_listdir, \
-         patch('app.frontend_management.os.rmdir') as mock_rmdir:
+    with patch("app.frontend_management.os.makedirs") as mock_makedirs, patch(
+        "app.frontend_management.os.listdir"
+    ) as mock_listdir, patch("app.frontend_management.os.rmdir") as mock_rmdir:
         mock_listdir.return_value = []  # Simulate empty directory
         yield mock_makedirs, mock_listdir, mock_rmdir
 
+
 @pytest.fixture
 def mock_download():
-    with patch('app.frontend_management.download_release_asset_zip') as mock:
+    with patch("app.frontend_management.download_release_asset_zip") as mock:
         mock.side_effect = Exception("Download failed")  # Simulate download failure
         yield mock
+
 
 def test_finally_block(mock_os_functions, mock_download, mock_provider):
     # Arrange
     mock_makedirs, mock_listdir, mock_rmdir = mock_os_functions
-    version_string = 'test-owner/test-repo@1.0.0'
+    version_string = "test-owner/test-repo@1.0.0"
 
     # Act & Assert
     with pytest.raises(Exception):

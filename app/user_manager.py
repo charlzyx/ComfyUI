@@ -13,7 +13,7 @@ from .app_settings import AppSettings
 default_user = "default"
 
 
-class UserManager():
+class UserManager:
     def __init__(self):
         user_directory = folder_paths.get_user_directory()
 
@@ -21,8 +21,12 @@ class UserManager():
         if not os.path.exists(user_directory):
             os.mkdir(user_directory)
             if not args.multi_user:
-                print("****** User settings have been changed to be stored on the server instead of browser storage. ******")
-                print("****** For multi-user setups add the --multi-user CLI argument to enable multiple user profiles. ******")
+                print(
+                    "****** User settings have been changed to be stored on the server instead of browser storage. ******"
+                )
+                print(
+                    "****** For multi-user setups add the --multi-user CLI argument to enable multiple user profiles. ******"
+                )
 
         if args.multi_user:
             if os.path.isfile(self.get_users_file()):
@@ -46,7 +50,9 @@ class UserManager():
 
         return user
 
-    def get_request_user_filepath(self, request, file, type="userdata", create_dir=True):
+    def get_request_user_filepath(
+        self, request, file, type="userdata", create_dir=True
+    ):
         user_directory = folder_paths.get_user_directory()
 
         if type == "userdata":
@@ -82,7 +88,7 @@ class UserManager():
         name = name.strip()
         if not name:
             raise ValueError("username not provided")
-        user_id = re.sub("[^a-zA-Z0-9-_]+", '-', name)
+        user_id = re.sub("[^a-zA-Z0-9-_]+", "-", name)
         user_id = user_id + "_" + str(uuid.uuid4())
 
         self.users[user_id] = name
@@ -100,11 +106,12 @@ class UserManager():
             if args.multi_user:
                 return web.json_response({"storage": "server", "users": self.users})
             else:
-                user_dir = self.get_request_user_filepath(request, None, create_dir=False)
-                return web.json_response({
-                    "storage": "server",
-                    "migrated": os.path.exists(user_dir)
-                })
+                user_dir = self.get_request_user_filepath(
+                    request, None, create_dir=False
+                )
+                return web.json_response(
+                    {"storage": "server", "migrated": os.path.exists(user_dir)}
+                )
 
         @routes.post("/users")
         async def post_users(request):
@@ -141,7 +148,7 @@ class UserManager():
             - full_info=true: List of dictionaries with file details.
             - split=true (and full_info=false): List of lists, each containing path components.
             """
-            directory = request.rel_url.query.get('dir', '')
+            directory = request.rel_url.query.get("dir", "")
             if not directory:
                 return web.Response(status=400, text="Directory not provided")
 
@@ -152,39 +159,41 @@ class UserManager():
             if not os.path.exists(path):
                 return web.Response(status=404, text="Directory not found")
 
-            recurse = request.rel_url.query.get('recurse', '').lower() == "true"
-            full_info = request.rel_url.query.get('full_info', '').lower() == "true"
+            recurse = request.rel_url.query.get("recurse", "").lower() == "true"
+            full_info = request.rel_url.query.get("full_info", "").lower() == "true"
 
             # Use different patterns based on whether we're recursing or not
             if recurse:
-                pattern = os.path.join(glob.escape(path), '**', '*')
+                pattern = os.path.join(glob.escape(path), "**", "*")
             else:
-                pattern = os.path.join(glob.escape(path), '*')
+                pattern = os.path.join(glob.escape(path), "*")
 
             results = glob.glob(pattern, recursive=recurse)
 
             if full_info:
                 results = [
                     {
-                        'path': os.path.relpath(x, path).replace(os.sep, '/'),
-                        'size': os.path.getsize(x),
-                        'modified': os.path.getmtime(x)
-                    } for x in results if os.path.isfile(x)
+                        "path": os.path.relpath(x, path).replace(os.sep, "/"),
+                        "size": os.path.getsize(x),
+                        "modified": os.path.getmtime(x),
+                    }
+                    for x in results
+                    if os.path.isfile(x)
                 ]
             else:
                 results = [
-                    os.path.relpath(x, path).replace(os.sep, '/')
+                    os.path.relpath(x, path).replace(os.sep, "/")
                     for x in results
                     if os.path.isfile(x)
                 ]
 
-            split_path = request.rel_url.query.get('split', '').lower() == "true"
+            split_path = request.rel_url.query.get("split", "").lower() == "true"
             if split_path and not full_info:
-                results = [[x] + x.split('/') for x in results]
+                results = [[x] + x.split("/") for x in results]
 
             return web.json_response(results)
 
-        def get_user_data_path(request, check_exists = False, param = "file"):
+        def get_user_data_path(request, check_exists=False, param="file"):
             file = request.match_info.get(param, None)
             if not file:
                 return web.Response(status=400)

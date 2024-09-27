@@ -3,12 +3,52 @@ import os
 import tempfile
 from folder_paths import filter_files_content_types
 
+
 @pytest.fixture(scope="module")
 def file_extensions():
     return {
-        'image': ['gif', 'heif', 'ico', 'jpeg', 'jpg', 'png', 'pnm', 'ppm', 'svg', 'tiff', 'webp', 'xbm', 'xpm'], 
-        'audio': ['aif', 'aifc', 'aiff', 'au', 'flac', 'm4a', 'mp2', 'mp3', 'ogg', 'snd', 'wav'], 
-        'video': ['avi', 'm2v', 'm4v', 'mkv', 'mov', 'mp4', 'mpeg', 'mpg', 'ogv', 'qt', 'webm', 'wmv']
+        "image": [
+            "gif",
+            "heif",
+            "ico",
+            "jpeg",
+            "jpg",
+            "png",
+            "pnm",
+            "ppm",
+            "svg",
+            "tiff",
+            "webp",
+            "xbm",
+            "xpm",
+        ],
+        "audio": [
+            "aif",
+            "aifc",
+            "aiff",
+            "au",
+            "flac",
+            "m4a",
+            "mp2",
+            "mp3",
+            "ogg",
+            "snd",
+            "wav",
+        ],
+        "video": [
+            "avi",
+            "m2v",
+            "m4v",
+            "mkv",
+            "mov",
+            "mp4",
+            "mpeg",
+            "mpg",
+            "ogv",
+            "qt",
+            "webm",
+            "wmv",
+        ],
     }
 
 
@@ -38,7 +78,15 @@ def test_categorizes_all_uniquely(mock_dir, file_extensions):
 
 
 def test_handles_bad_extensions():
-    files = ["file1.txt", "file2.py", "file3.example", "file4.pdf", "file5.ini", "file6.doc", "file7.md"]
+    files = [
+        "file1.txt",
+        "file2.py",
+        "file3.example",
+        "file4.pdf",
+        "file5.ini",
+        "file6.doc",
+        "file7.md",
+    ]
     assert filter_files_content_types(files, ["image", "audio", "video"]) == []
 
 

@@ -2,13 +2,14 @@ import torch
 from .tools import VariantSupport
 from comfy_execution.graph_utils import GraphBuilder
 
+
 class TestLazyMixImages:
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "image1": ("IMAGE",{"lazy": True}),
-                "image2": ("IMAGE",{"lazy": True}),
+                "image1": ("IMAGE", {"lazy": True}),
+                "image2": ("IMAGE", {"lazy": True}),
                 "mask": ("MASK",),
             },
         }
@@ -44,8 +45,9 @@ class TestLazyMixImages:
         if mask.shape[3] < image1.shape[3]:
             mask = mask.repeat(1, 1, 1, image1.shape[3])
 
-        result = image1 * (1. - mask) + image2 * mask,
+        result = (image1 * (1.0 - mask) + image2 * mask,)
         return (result[0],)
+
 
 class TestVariadicAverage:
     @classmethod
@@ -63,8 +65,8 @@ class TestVariadicAverage:
 
     def variadic_average(self, input1, **kwargs):
         inputs = [input1]
-        while 'input' + str(len(inputs) + 1) in kwargs:
-            inputs.append(kwargs['input' + str(len(inputs) + 1)])
+        while "input" + str(len(inputs) + 1) in kwargs:
+            inputs.append(kwargs["input" + str(len(inputs) + 1)])
         return (torch.stack(inputs).mean(dim=0),)
 
 
@@ -87,13 +89,14 @@ class TestCustomIsChanged:
 
     def custom_is_changed(self, image, should_change=False):
         return (image,)
-    
+
     @classmethod
     def IS_CHANGED(cls, should_change=False, *args, **kwargs):
         if should_change:
             return float("NaN")
         else:
             return False
+
 
 class TestIsChangedWithConstants:
     @classmethod
@@ -112,13 +115,14 @@ class TestIsChangedWithConstants:
 
     def custom_is_changed(self, image, value):
         return (image * value,)
-    
+
     @classmethod
     def IS_CHANGED(cls, image, value):
         if image is None:
             return value
         else:
             return image.mean().item() * value
+
 
 class TestCustomValidation1:
     @classmethod
@@ -153,6 +157,7 @@ class TestCustomValidation1:
 
         return True
 
+
 class TestCustomValidation2:
     @classmethod
     def INPUT_TYPES(cls):
@@ -184,14 +189,15 @@ class TestCustomValidation2:
             if not isinstance(input2, (torch.Tensor, float)):
                 return f"Invalid type of input2: {type(input2)}"
 
-        if 'input1' in input_types:
-            if input_types['input1'] not in ["IMAGE", "FLOAT"]:
+        if "input1" in input_types:
+            if input_types["input1"] not in ["IMAGE", "FLOAT"]:
                 return f"Invalid type of input1: {input_types['input1']}"
-        if 'input2' in input_types:
-            if input_types['input2'] not in ["IMAGE", "FLOAT"]:
+        if "input2" in input_types:
+            if input_types["input2"] not in ["IMAGE", "FLOAT"]:
                 return f"Invalid type of input2: {input_types['input2']}"
 
         return True
+
 
 @VariantSupport()
 class TestCustomValidation3:
@@ -215,6 +221,7 @@ class TestCustomValidation3:
         else:
             result = input1 * input2
         return (result,)
+
 
 class TestCustomValidation4:
     @classmethod
@@ -246,6 +253,7 @@ class TestCustomValidation4:
 
         return True
 
+
 class TestCustomValidation5:
     @classmethod
     def INPUT_TYPES(cls):
@@ -267,9 +275,10 @@ class TestCustomValidation5:
 
     @classmethod
     def VALIDATE_INPUTS(cls, **kwargs):
-        if kwargs['input2'] == 7.0:
+        if kwargs["input2"] == 7.0:
             return "7s are not allowed. I've never liked 7s."
         return True
+
 
 class TestDynamicDependencyCycle:
     @classmethod
@@ -290,7 +299,9 @@ class TestDynamicDependencyCycle:
         g = GraphBuilder()
         mask = g.node("StubMask", value=0.5, height=512, width=512, batch_size=1)
         mix1 = g.node("TestLazyMixImages", image1=input1, mask=mask.out(0))
-        mix2 = g.node("TestLazyMixImages", image1=mix1.out(0), image2=input2, mask=mask.out(0))
+        mix2 = g.node(
+            "TestLazyMixImages", image1=mix1.out(0), image2=input2, mask=mask.out(0)
+        )
 
         # Create the cyle
         mix1.set_input("image2", mix2.out(0))
@@ -299,6 +310,7 @@ class TestDynamicDependencyCycle:
             "result": (mix2.out(0),),
             "expand": g.finalize(),
         }
+
 
 class TestMixedExpansionReturns:
     @classmethod
@@ -309,7 +321,7 @@ class TestMixedExpansionReturns:
             },
         }
 
-    RETURN_TYPES = ("IMAGE","IMAGE")
+    RETURN_TYPES = ("IMAGE", "IMAGE")
     FUNCTION = "mixed_expansion_returns"
 
     CATEGORY = "Testing/Nodes"
@@ -325,13 +337,23 @@ class TestMixedExpansionReturns:
         else:
             g = GraphBuilder()
             mask = g.node("StubMask", value=0.3, height=512, width=512, batch_size=1)
-            black = g.node("StubImage", content="BLACK", height=512, width=512, batch_size=1)
-            white = g.node("StubImage", content="WHITE", height=512, width=512, batch_size=1)
-            mix = g.node("TestLazyMixImages", image1=black.out(0), image2=white.out(0), mask=mask.out(0))
+            black = g.node(
+                "StubImage", content="BLACK", height=512, width=512, batch_size=1
+            )
+            white = g.node(
+                "StubImage", content="WHITE", height=512, width=512, batch_size=1
+            )
+            mix = g.node(
+                "TestLazyMixImages",
+                image1=black.out(0),
+                image2=white.out(0),
+                mask=mask.out(0),
+            )
             return {
                 "result": (mix.out(0), white_image),
                 "expand": g.finalize(),
             }
+
 
 TEST_NODE_CLASS_MAPPINGS = {
     "TestLazyMixImages": TestLazyMixImages,

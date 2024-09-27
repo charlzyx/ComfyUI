@@ -132,7 +132,9 @@ class FrontendManager:
         return match_result.group(1), match_result.group(2), match_result.group(3)
 
     @classmethod
-    def init_frontend_unsafe(cls, version_string: str, provider: Optional[FrontEndProvider] = None) -> str:
+    def init_frontend_unsafe(
+        cls, version_string: str, provider: Optional[FrontEndProvider] = None
+    ) -> str:
         """
         Initializes the frontend for the specified version.
 

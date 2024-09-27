@@ -1,19 +1,19 @@
 """
-    This file is part of ComfyUI.
-    Copyright (C) 2024 Comfy
+This file is part of ComfyUI.
+Copyright (C) 2024 Comfy
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 from __future__ import annotations
@@ -74,7 +74,7 @@ def load_lora(lora, to_load):
             mid_name = None
         elif transformers_lora in lora.keys():
             A_name = transformers_lora
-            B_name ="{}.lora_linear_layer.down.weight".format(x)
+            B_name = "{}.lora_linear_layer.down.weight".format(x)
             mid_name = None
 
         if A_name is not None:
@@ -82,10 +82,12 @@ def load_lora(lora, to_load):
             if mid_name is not None and mid_name in lora.keys():
                 mid = lora[mid_name]
                 loaded_keys.add(mid_name)
-            patch_dict[to_load[x]] = ("lora", (lora[A_name], lora[B_name], alpha, mid, dora_scale))
+            patch_dict[to_load[x]] = (
+                "lora",
+                (lora[A_name], lora[B_name], alpha, mid, dora_scale),
+            )
             loaded_keys.add(A_name)
             loaded_keys.add(B_name)
-
 
         ######## loha
         hada_w1_a_name = "{}.hada_w1_a".format(x)
@@ -103,12 +105,23 @@ def load_lora(lora, to_load):
                 loaded_keys.add(hada_t1_name)
                 loaded_keys.add(hada_t2_name)
 
-            patch_dict[to_load[x]] = ("loha", (lora[hada_w1_a_name], lora[hada_w1_b_name], alpha, lora[hada_w2_a_name], lora[hada_w2_b_name], hada_t1, hada_t2, dora_scale))
+            patch_dict[to_load[x]] = (
+                "loha",
+                (
+                    lora[hada_w1_a_name],
+                    lora[hada_w1_b_name],
+                    alpha,
+                    lora[hada_w2_a_name],
+                    lora[hada_w2_b_name],
+                    hada_t1,
+                    hada_t2,
+                    dora_scale,
+                ),
+            )
             loaded_keys.add(hada_w1_a_name)
             loaded_keys.add(hada_w1_b_name)
             loaded_keys.add(hada_w2_a_name)
             loaded_keys.add(hada_w2_b_name)
-
 
         ######## lokr
         lokr_w1_name = "{}.lokr_w1".format(x)
@@ -154,16 +167,44 @@ def load_lora(lora, to_load):
             lokr_t2 = lora[lokr_t2_name]
             loaded_keys.add(lokr_t2_name)
 
-        if (lokr_w1 is not None) or (lokr_w2 is not None) or (lokr_w1_a is not None) or (lokr_w2_a is not None):
-            patch_dict[to_load[x]] = ("lokr", (lokr_w1, lokr_w2, alpha, lokr_w1_a, lokr_w1_b, lokr_w2_a, lokr_w2_b, lokr_t2, dora_scale))
+        if (
+            (lokr_w1 is not None)
+            or (lokr_w2 is not None)
+            or (lokr_w1_a is not None)
+            or (lokr_w2_a is not None)
+        ):
+            patch_dict[to_load[x]] = (
+                "lokr",
+                (
+                    lokr_w1,
+                    lokr_w2,
+                    alpha,
+                    lokr_w1_a,
+                    lokr_w1_b,
+                    lokr_w2_a,
+                    lokr_w2_b,
+                    lokr_t2,
+                    dora_scale,
+                ),
+            )
 
-        #glora
+        # glora
         a1_name = "{}.a1.weight".format(x)
         a2_name = "{}.a2.weight".format(x)
         b1_name = "{}.b1.weight".format(x)
         b2_name = "{}.b2.weight".format(x)
         if a1_name in lora:
-            patch_dict[to_load[x]] = ("glora", (lora[a1_name], lora[a2_name], lora[b1_name], lora[b2_name], alpha, dora_scale))
+            patch_dict[to_load[x]] = (
+                "glora",
+                (
+                    lora[a1_name],
+                    lora[a2_name],
+                    lora[b1_name],
+                    lora[b2_name],
+                    alpha,
+                    dora_scale,
+                ),
+            )
             loaded_keys.add(a1_name)
             loaded_keys.add(a2_name)
             loaded_keys.add(b1_name)
@@ -179,7 +220,10 @@ def load_lora(lora, to_load):
             patch_dict[to_load[x]] = ("diff", (w_norm,))
             if b_norm is not None:
                 loaded_keys.add(b_norm_name)
-                patch_dict["{}.bias".format(to_load[x][:-len(".weight")])] = ("diff", (b_norm,))
+                patch_dict["{}.bias".format(to_load[x][: -len(".weight")])] = (
+                    "diff",
+                    (b_norm,),
+                )
 
         diff_name = "{}.diff".format(x)
         diff_weight = lora.get(diff_name, None)
@@ -190,7 +234,10 @@ def load_lora(lora, to_load):
         diff_bias_name = "{}.diff_b".format(x)
         diff_bias = lora.get(diff_bias_name, None)
         if diff_bias is not None:
-            patch_dict["{}.bias".format(to_load[x][:-len(".weight")])] = ("diff", (diff_bias,))
+            patch_dict["{}.bias".format(to_load[x][: -len(".weight")])] = (
+                "diff",
+                (diff_bias,),
+            )
             loaded_keys.add(diff_bias_name)
 
     for x in lora.keys():
@@ -199,83 +246,108 @@ def load_lora(lora, to_load):
 
     return patch_dict
 
+
 def model_lora_keys_clip(model, key_map={}):
     sdk = model.state_dict().keys()
     for k in sdk:
         if k.endswith(".weight"):
-            key_map["text_encoders.{}".format(k[:-len(".weight")])] = k #generic lora format without any weird key names
+            key_map["text_encoders.{}".format(k[: -len(".weight")])] = (
+                k  # generic lora format without any weird key names
+            )
 
     text_model_lora_key = "lora_te_text_model_encoder_layers_{}_{}"
     clip_l_present = False
     clip_g_present = False
-    for b in range(32): #TODO: clean up
+    for b in range(32):  # TODO: clean up
         for c in LORA_CLIP_MAP:
             k = "clip_h.transformer.text_model.encoder.layers.{}.{}.weight".format(b, c)
             if k in sdk:
                 lora_key = text_model_lora_key.format(b, LORA_CLIP_MAP[c])
                 key_map[lora_key] = k
-                lora_key = "lora_te1_text_model_encoder_layers_{}_{}".format(b, LORA_CLIP_MAP[c])
+                lora_key = "lora_te1_text_model_encoder_layers_{}_{}".format(
+                    b, LORA_CLIP_MAP[c]
+                )
                 key_map[lora_key] = k
-                lora_key = "text_encoder.text_model.encoder.layers.{}.{}".format(b, c) #diffusers lora
+                lora_key = "text_encoder.text_model.encoder.layers.{}.{}".format(
+                    b, c
+                )  # diffusers lora
                 key_map[lora_key] = k
 
             k = "clip_l.transformer.text_model.encoder.layers.{}.{}.weight".format(b, c)
             if k in sdk:
                 lora_key = text_model_lora_key.format(b, LORA_CLIP_MAP[c])
                 key_map[lora_key] = k
-                lora_key = "lora_te1_text_model_encoder_layers_{}_{}".format(b, LORA_CLIP_MAP[c]) #SDXL base
+                lora_key = "lora_te1_text_model_encoder_layers_{}_{}".format(
+                    b, LORA_CLIP_MAP[c]
+                )  # SDXL base
                 key_map[lora_key] = k
                 clip_l_present = True
-                lora_key = "text_encoder.text_model.encoder.layers.{}.{}".format(b, c) #diffusers lora
+                lora_key = "text_encoder.text_model.encoder.layers.{}.{}".format(
+                    b, c
+                )  # diffusers lora
                 key_map[lora_key] = k
 
             k = "clip_g.transformer.text_model.encoder.layers.{}.{}.weight".format(b, c)
             if k in sdk:
                 clip_g_present = True
                 if clip_l_present:
-                    lora_key = "lora_te2_text_model_encoder_layers_{}_{}".format(b, LORA_CLIP_MAP[c]) #SDXL base
+                    lora_key = "lora_te2_text_model_encoder_layers_{}_{}".format(
+                        b, LORA_CLIP_MAP[c]
+                    )  # SDXL base
                     key_map[lora_key] = k
-                    lora_key = "text_encoder_2.text_model.encoder.layers.{}.{}".format(b, c) #diffusers lora
+                    lora_key = "text_encoder_2.text_model.encoder.layers.{}.{}".format(
+                        b, c
+                    )  # diffusers lora
                     key_map[lora_key] = k
                 else:
-                    lora_key = "lora_te_text_model_encoder_layers_{}_{}".format(b, LORA_CLIP_MAP[c]) #TODO: test if this is correct for SDXL-Refiner
+                    lora_key = "lora_te_text_model_encoder_layers_{}_{}".format(
+                        b, LORA_CLIP_MAP[c]
+                    )  # TODO: test if this is correct for SDXL-Refiner
                     key_map[lora_key] = k
-                    lora_key = "text_encoder.text_model.encoder.layers.{}.{}".format(b, c) #diffusers lora
+                    lora_key = "text_encoder.text_model.encoder.layers.{}.{}".format(
+                        b, c
+                    )  # diffusers lora
                     key_map[lora_key] = k
-                    lora_key = "lora_prior_te_text_model_encoder_layers_{}_{}".format(b, LORA_CLIP_MAP[c]) #cascade lora: TODO put lora key prefix in the model config
+                    lora_key = "lora_prior_te_text_model_encoder_layers_{}_{}".format(
+                        b, LORA_CLIP_MAP[c]
+                    )  # cascade lora: TODO put lora key prefix in the model config
                     key_map[lora_key] = k
 
     for k in sdk:
         if k.endswith(".weight"):
-            if k.startswith("t5xxl.transformer."):#OneTrainer SD3 and Flux lora
-                l_key = k[len("t5xxl.transformer."):-len(".weight")]
+            if k.startswith("t5xxl.transformer."):  # OneTrainer SD3 and Flux lora
+                l_key = k[len("t5xxl.transformer.") : -len(".weight")]
                 t5_index = 1
                 if clip_g_present:
                     t5_index += 1
                 if clip_l_present:
                     t5_index += 1
                     if t5_index == 2:
-                        key_map["lora_te{}_{}".format(t5_index, l_key.replace(".", "_"))] = k #OneTrainer Flux
+                        key_map[
+                            "lora_te{}_{}".format(t5_index, l_key.replace(".", "_"))
+                        ] = k  # OneTrainer Flux
                         t5_index += 1
 
                 key_map["lora_te{}_{}".format(t5_index, l_key.replace(".", "_"))] = k
-            elif k.startswith("hydit_clip.transformer.bert."): #HunyuanDiT Lora
-                l_key = k[len("hydit_clip.transformer.bert."):-len(".weight")]
+            elif k.startswith("hydit_clip.transformer.bert."):  # HunyuanDiT Lora
+                l_key = k[len("hydit_clip.transformer.bert.") : -len(".weight")]
                 lora_key = "lora_te1_{}".format(l_key.replace(".", "_"))
                 key_map[lora_key] = k
 
-
     k = "clip_g.transformer.text_projection.weight"
     if k in sdk:
-        key_map["lora_prior_te_text_projection"] = k #cascade lora?
+        key_map["lora_prior_te_text_projection"] = k  # cascade lora?
         # key_map["text_encoder.text_projection"] = k #TODO: check if other lora have the text_projection too
-        key_map["lora_te2_text_projection"] = k #OneTrainer SD3 lora
+        key_map["lora_te2_text_projection"] = k  # OneTrainer SD3 lora
 
     k = "clip_l.transformer.text_projection.weight"
     if k in sdk:
-        key_map["lora_te1_text_projection"] = k #OneTrainer SD3 lora, not necessary but omits warning
+        key_map["lora_te1_text_projection"] = (
+            k  # OneTrainer SD3 lora, not necessary but omits warning
+        )
 
     return key_map
+
 
 def model_lora_keys_unet(model, key_map={}):
     sd = model.state_dict()
@@ -283,67 +355,99 @@ def model_lora_keys_unet(model, key_map={}):
 
     for k in sdk:
         if k.startswith("diffusion_model.") and k.endswith(".weight"):
-            key_lora = k[len("diffusion_model."):-len(".weight")].replace(".", "_")
+            key_lora = k[len("diffusion_model.") : -len(".weight")].replace(".", "_")
             key_map["lora_unet_{}".format(key_lora)] = k
-            key_map["lora_prior_unet_{}".format(key_lora)] = k #cascade lora: TODO put lora key prefix in the model config
-            key_map["{}".format(k[:-len(".weight")])] = k #generic lora format without any weird key names
+            key_map["lora_prior_unet_{}".format(key_lora)] = (
+                k  # cascade lora: TODO put lora key prefix in the model config
+            )
+            key_map["{}".format(k[: -len(".weight")])] = (
+                k  # generic lora format without any weird key names
+            )
 
     diffusers_keys = comfy.utils.unet_to_diffusers(model.model_config.unet_config)
     for k in diffusers_keys:
         if k.endswith(".weight"):
             unet_key = "diffusion_model.{}".format(diffusers_keys[k])
-            key_lora = k[:-len(".weight")].replace(".", "_")
+            key_lora = k[: -len(".weight")].replace(".", "_")
             key_map["lora_unet_{}".format(key_lora)] = unet_key
 
             diffusers_lora_prefix = ["", "unet."]
             for p in diffusers_lora_prefix:
-                diffusers_lora_key = "{}{}".format(p, k[:-len(".weight")].replace(".to_", ".processor.to_"))
+                diffusers_lora_key = "{}{}".format(
+                    p, k[: -len(".weight")].replace(".to_", ".processor.to_")
+                )
                 if diffusers_lora_key.endswith(".to_out.0"):
                     diffusers_lora_key = diffusers_lora_key[:-2]
                 key_map[diffusers_lora_key] = unet_key
 
-    if isinstance(model, comfy.model_base.SD3): #Diffusers lora SD3
-        diffusers_keys = comfy.utils.mmdit_to_diffusers(model.model_config.unet_config, output_prefix="diffusion_model.")
+    if isinstance(model, comfy.model_base.SD3):  # Diffusers lora SD3
+        diffusers_keys = comfy.utils.mmdit_to_diffusers(
+            model.model_config.unet_config, output_prefix="diffusion_model."
+        )
         for k in diffusers_keys:
             if k.endswith(".weight"):
                 to = diffusers_keys[k]
-                key_lora = "transformer.{}".format(k[:-len(".weight")]) #regular diffusers sd3 lora format
+                key_lora = "transformer.{}".format(
+                    k[: -len(".weight")]
+                )  # regular diffusers sd3 lora format
                 key_map[key_lora] = to
 
-                key_lora = "base_model.model.{}".format(k[:-len(".weight")]) #format for flash-sd3 lora and others?
+                key_lora = "base_model.model.{}".format(
+                    k[: -len(".weight")]
+                )  # format for flash-sd3 lora and others?
                 key_map[key_lora] = to
 
-                key_lora = "lora_transformer_{}".format(k[:-len(".weight")].replace(".", "_")) #OneTrainer lora
+                key_lora = "lora_transformer_{}".format(
+                    k[: -len(".weight")].replace(".", "_")
+                )  # OneTrainer lora
                 key_map[key_lora] = to
 
-    if isinstance(model, comfy.model_base.AuraFlow): #Diffusers lora AuraFlow
-        diffusers_keys = comfy.utils.auraflow_to_diffusers(model.model_config.unet_config, output_prefix="diffusion_model.")
+    if isinstance(model, comfy.model_base.AuraFlow):  # Diffusers lora AuraFlow
+        diffusers_keys = comfy.utils.auraflow_to_diffusers(
+            model.model_config.unet_config, output_prefix="diffusion_model."
+        )
         for k in diffusers_keys:
             if k.endswith(".weight"):
                 to = diffusers_keys[k]
-                key_lora = "transformer.{}".format(k[:-len(".weight")]) #simpletrainer and probably regular diffusers lora format
+                key_lora = "transformer.{}".format(
+                    k[: -len(".weight")]
+                )  # simpletrainer and probably regular diffusers lora format
                 key_map[key_lora] = to
 
     if isinstance(model, comfy.model_base.HunyuanDiT):
         for k in sdk:
             if k.startswith("diffusion_model.") and k.endswith(".weight"):
-                key_lora = k[len("diffusion_model."):-len(".weight")]
-                key_map["base_model.model.{}".format(key_lora)] = k #official hunyuan lora format
+                key_lora = k[len("diffusion_model.") : -len(".weight")]
+                key_map["base_model.model.{}".format(key_lora)] = (
+                    k  # official hunyuan lora format
+                )
 
-    if isinstance(model, comfy.model_base.Flux): #Diffusers lora Flux
-        diffusers_keys = comfy.utils.flux_to_diffusers(model.model_config.unet_config, output_prefix="diffusion_model.")
+    if isinstance(model, comfy.model_base.Flux):  # Diffusers lora Flux
+        diffusers_keys = comfy.utils.flux_to_diffusers(
+            model.model_config.unet_config, output_prefix="diffusion_model."
+        )
         for k in diffusers_keys:
             if k.endswith(".weight"):
                 to = diffusers_keys[k]
-                key_map["transformer.{}".format(k[:-len(".weight")])] = to #simpletrainer and probably regular diffusers flux lora format
-                key_map["lycoris_{}".format(k[:-len(".weight")].replace(".", "_"))] = to #simpletrainer lycoris
-                key_map["lora_transformer_{}".format(k[:-len(".weight")].replace(".", "_"))] = to #onetrainer
+                key_map["transformer.{}".format(k[: -len(".weight")])] = (
+                    to  # simpletrainer and probably regular diffusers flux lora format
+                )
+                key_map["lycoris_{}".format(k[: -len(".weight")].replace(".", "_"))] = (
+                    to  # simpletrainer lycoris
+                )
+                key_map[
+                    "lora_transformer_{}".format(k[: -len(".weight")].replace(".", "_"))
+                ] = to  # onetrainer
 
     return key_map
 
 
-def weight_decompose(dora_scale, weight, lora_diff, alpha, strength, intermediate_dtype):
-    dora_scale = comfy.model_management.cast_to_device(dora_scale, weight.device, intermediate_dtype)
+def weight_decompose(
+    dora_scale, weight, lora_diff, alpha, strength, intermediate_dtype
+):
+    dora_scale = comfy.model_management.cast_to_device(
+        dora_scale, weight.device, intermediate_dtype
+    )
     lora_diff *= alpha
     weight_calc = weight + lora_diff.type(weight.dtype)
     weight_norm = (
@@ -362,6 +466,7 @@ def weight_decompose(dora_scale, weight, lora_diff, alpha, strength, intermediat
         weight[:] = weight_calc
     return weight
 
+
 def pad_tensor_to_shape(tensor: torch.Tensor, new_shape: list[int]) -> torch.Tensor:
     """
     Pad a tensor to a new shape with zeros.
@@ -378,10 +483,14 @@ def pad_tensor_to_shape(tensor: torch.Tensor, new_shape: list[int]) -> torch.Ten
         the original tensor will be truncated in that dimension.
     """
     if any([new_shape[i] < tensor.shape[i] for i in range(len(new_shape))]):
-        raise ValueError("The new shape must be larger than the original tensor in all dimensions")
+        raise ValueError(
+            "The new shape must be larger than the original tensor in all dimensions"
+        )
 
     if len(new_shape) != len(tensor.shape):
-        raise ValueError("The new shape must have the same number of dimensions as the original tensor")
+        raise ValueError(
+            "The new shape must have the same number of dimensions as the original tensor"
+        )
 
     # Create a new tensor filled with zeros
     padded_tensor = torch.zeros(new_shape, dtype=tensor.dtype, device=tensor.device)
@@ -394,6 +503,7 @@ def pad_tensor_to_shape(tensor: torch.Tensor, new_shape: list[int]) -> torch.Ten
     padded_tensor[new_slices] = tensor[orig_slices]
 
     return padded_tensor
+
 
 def calculate_weight(patches, weight, key, intermediate_dtype=torch.float32):
     for p in patches:
@@ -414,7 +524,16 @@ def calculate_weight(patches, weight, key, intermediate_dtype=torch.float32):
             weight *= strength_model
 
         if isinstance(v, list):
-            v = (calculate_weight(v[1:], comfy.model_management.cast_to_device(v[0], weight.device, intermediate_dtype, copy=True), key, intermediate_dtype=intermediate_dtype), )
+            v = (
+                calculate_weight(
+                    v[1:],
+                    comfy.model_management.cast_to_device(
+                        v[0], weight.device, intermediate_dtype, copy=True
+                    ),
+                    key,
+                    intermediate_dtype=intermediate_dtype,
+                ),
+            )
 
         if len(v) == 1:
             patch_type = "diff"
@@ -425,19 +544,36 @@ def calculate_weight(patches, weight, key, intermediate_dtype=torch.float32):
         if patch_type == "diff":
             diff: torch.Tensor = v[0]
             # An extra flag to pad the weight if the diff's shape is larger than the weight
-            do_pad_weight = len(v) > 1 and v[1]['pad_weight']
+            do_pad_weight = len(v) > 1 and v[1]["pad_weight"]
             if do_pad_weight and diff.shape != weight.shape:
-                logging.info("Pad weight {} from {} to shape: {}".format(key, weight.shape, diff.shape))
+                logging.info(
+                    "Pad weight {} from {} to shape: {}".format(
+                        key, weight.shape, diff.shape
+                    )
+                )
                 weight = pad_tensor_to_shape(weight, diff.shape)
 
             if strength != 0.0:
                 if diff.shape != weight.shape:
-                    logging.warning("WARNING SHAPE MISMATCH {} WEIGHT NOT MERGED {} != {}".format(key, diff.shape, weight.shape))
+                    logging.warning(
+                        "WARNING SHAPE MISMATCH {} WEIGHT NOT MERGED {} != {}".format(
+                            key, diff.shape, weight.shape
+                        )
+                    )
                 else:
-                    weight += function(strength * comfy.model_management.cast_to_device(diff, weight.device, weight.dtype))
-        elif patch_type == "lora": #lora/locon
-            mat1 = comfy.model_management.cast_to_device(v[0], weight.device, intermediate_dtype)
-            mat2 = comfy.model_management.cast_to_device(v[1], weight.device, intermediate_dtype)
+                    weight += function(
+                        strength
+                        * comfy.model_management.cast_to_device(
+                            diff, weight.device, weight.dtype
+                        )
+                    )
+        elif patch_type == "lora":  # lora/locon
+            mat1 = comfy.model_management.cast_to_device(
+                v[0], weight.device, intermediate_dtype
+            )
+            mat2 = comfy.model_management.cast_to_device(
+                v[1], weight.device, intermediate_dtype
+            )
             dora_scale = v[4]
             if v[2] is not None:
                 alpha = v[2] / mat2.shape[0]
@@ -445,16 +581,43 @@ def calculate_weight(patches, weight, key, intermediate_dtype=torch.float32):
                 alpha = 1.0
 
             if v[3] is not None:
-                #locon mid weights, hopefully the math is fine because I didn't properly test it
-                mat3 = comfy.model_management.cast_to_device(v[3], weight.device, intermediate_dtype)
-                final_shape = [mat2.shape[1], mat2.shape[0], mat3.shape[2], mat3.shape[3]]
-                mat2 = torch.mm(mat2.transpose(0, 1).flatten(start_dim=1), mat3.transpose(0, 1).flatten(start_dim=1)).reshape(final_shape).transpose(0, 1)
+                # locon mid weights, hopefully the math is fine because I didn't properly test it
+                mat3 = comfy.model_management.cast_to_device(
+                    v[3], weight.device, intermediate_dtype
+                )
+                final_shape = [
+                    mat2.shape[1],
+                    mat2.shape[0],
+                    mat3.shape[2],
+                    mat3.shape[3],
+                ]
+                mat2 = (
+                    torch.mm(
+                        mat2.transpose(0, 1).flatten(start_dim=1),
+                        mat3.transpose(0, 1).flatten(start_dim=1),
+                    )
+                    .reshape(final_shape)
+                    .transpose(0, 1)
+                )
             try:
-                lora_diff = torch.mm(mat1.flatten(start_dim=1), mat2.flatten(start_dim=1)).reshape(weight.shape)
+                lora_diff = torch.mm(
+                    mat1.flatten(start_dim=1), mat2.flatten(start_dim=1)
+                ).reshape(weight.shape)
                 if dora_scale is not None:
-                    weight = function(weight_decompose(dora_scale, weight, lora_diff, alpha, strength, intermediate_dtype))
+                    weight = function(
+                        weight_decompose(
+                            dora_scale,
+                            weight,
+                            lora_diff,
+                            alpha,
+                            strength,
+                            intermediate_dtype,
+                        )
+                    )
                 else:
-                    weight += function(((strength * alpha) * lora_diff).type(weight.dtype))
+                    weight += function(
+                        ((strength * alpha) * lora_diff).type(weight.dtype)
+                    )
             except Exception as e:
                 logging.error("ERROR {} {} {}".format(patch_type, key, e))
         elif patch_type == "lokr":
@@ -470,23 +633,47 @@ def calculate_weight(patches, weight, key, intermediate_dtype=torch.float32):
 
             if w1 is None:
                 dim = w1_b.shape[0]
-                w1 = torch.mm(comfy.model_management.cast_to_device(w1_a, weight.device, intermediate_dtype),
-                                comfy.model_management.cast_to_device(w1_b, weight.device, intermediate_dtype))
+                w1 = torch.mm(
+                    comfy.model_management.cast_to_device(
+                        w1_a, weight.device, intermediate_dtype
+                    ),
+                    comfy.model_management.cast_to_device(
+                        w1_b, weight.device, intermediate_dtype
+                    ),
+                )
             else:
-                w1 = comfy.model_management.cast_to_device(w1, weight.device, intermediate_dtype)
+                w1 = comfy.model_management.cast_to_device(
+                    w1, weight.device, intermediate_dtype
+                )
 
             if w2 is None:
                 dim = w2_b.shape[0]
                 if t2 is None:
-                    w2 = torch.mm(comfy.model_management.cast_to_device(w2_a, weight.device, intermediate_dtype),
-                                    comfy.model_management.cast_to_device(w2_b, weight.device, intermediate_dtype))
+                    w2 = torch.mm(
+                        comfy.model_management.cast_to_device(
+                            w2_a, weight.device, intermediate_dtype
+                        ),
+                        comfy.model_management.cast_to_device(
+                            w2_b, weight.device, intermediate_dtype
+                        ),
+                    )
                 else:
-                    w2 = torch.einsum('i j k l, j r, i p -> p r k l',
-                                        comfy.model_management.cast_to_device(t2, weight.device, intermediate_dtype),
-                                        comfy.model_management.cast_to_device(w2_b, weight.device, intermediate_dtype),
-                                        comfy.model_management.cast_to_device(w2_a, weight.device, intermediate_dtype))
+                    w2 = torch.einsum(
+                        "i j k l, j r, i p -> p r k l",
+                        comfy.model_management.cast_to_device(
+                            t2, weight.device, intermediate_dtype
+                        ),
+                        comfy.model_management.cast_to_device(
+                            w2_b, weight.device, intermediate_dtype
+                        ),
+                        comfy.model_management.cast_to_device(
+                            w2_a, weight.device, intermediate_dtype
+                        ),
+                    )
             else:
-                w2 = comfy.model_management.cast_to_device(w2, weight.device, intermediate_dtype)
+                w2 = comfy.model_management.cast_to_device(
+                    w2, weight.device, intermediate_dtype
+                )
 
             if len(w2.shape) == 4:
                 w1 = w1.unsqueeze(2).unsqueeze(2)
@@ -498,9 +685,20 @@ def calculate_weight(patches, weight, key, intermediate_dtype=torch.float32):
             try:
                 lora_diff = torch.kron(w1, w2).reshape(weight.shape)
                 if dora_scale is not None:
-                    weight = function(weight_decompose(dora_scale, weight, lora_diff, alpha, strength, intermediate_dtype))
+                    weight = function(
+                        weight_decompose(
+                            dora_scale,
+                            weight,
+                            lora_diff,
+                            alpha,
+                            strength,
+                            intermediate_dtype,
+                        )
+                    )
                 else:
-                    weight += function(((strength * alpha) * lora_diff).type(weight.dtype))
+                    weight += function(
+                        ((strength * alpha) * lora_diff).type(weight.dtype)
+                    )
             except Exception as e:
                 logging.error("ERROR {} {} {}".format(patch_type, key, e))
         elif patch_type == "loha":
@@ -514,30 +712,69 @@ def calculate_weight(patches, weight, key, intermediate_dtype=torch.float32):
             w2a = v[3]
             w2b = v[4]
             dora_scale = v[7]
-            if v[5] is not None: #cp decomposition
+            if v[5] is not None:  # cp decomposition
                 t1 = v[5]
                 t2 = v[6]
-                m1 = torch.einsum('i j k l, j r, i p -> p r k l',
-                                    comfy.model_management.cast_to_device(t1, weight.device, intermediate_dtype),
-                                    comfy.model_management.cast_to_device(w1b, weight.device, intermediate_dtype),
-                                    comfy.model_management.cast_to_device(w1a, weight.device, intermediate_dtype))
+                m1 = torch.einsum(
+                    "i j k l, j r, i p -> p r k l",
+                    comfy.model_management.cast_to_device(
+                        t1, weight.device, intermediate_dtype
+                    ),
+                    comfy.model_management.cast_to_device(
+                        w1b, weight.device, intermediate_dtype
+                    ),
+                    comfy.model_management.cast_to_device(
+                        w1a, weight.device, intermediate_dtype
+                    ),
+                )
 
-                m2 = torch.einsum('i j k l, j r, i p -> p r k l',
-                                    comfy.model_management.cast_to_device(t2, weight.device, intermediate_dtype),
-                                    comfy.model_management.cast_to_device(w2b, weight.device, intermediate_dtype),
-                                    comfy.model_management.cast_to_device(w2a, weight.device, intermediate_dtype))
+                m2 = torch.einsum(
+                    "i j k l, j r, i p -> p r k l",
+                    comfy.model_management.cast_to_device(
+                        t2, weight.device, intermediate_dtype
+                    ),
+                    comfy.model_management.cast_to_device(
+                        w2b, weight.device, intermediate_dtype
+                    ),
+                    comfy.model_management.cast_to_device(
+                        w2a, weight.device, intermediate_dtype
+                    ),
+                )
             else:
-                m1 = torch.mm(comfy.model_management.cast_to_device(w1a, weight.device, intermediate_dtype),
-                                comfy.model_management.cast_to_device(w1b, weight.device, intermediate_dtype))
-                m2 = torch.mm(comfy.model_management.cast_to_device(w2a, weight.device, intermediate_dtype),
-                                comfy.model_management.cast_to_device(w2b, weight.device, intermediate_dtype))
+                m1 = torch.mm(
+                    comfy.model_management.cast_to_device(
+                        w1a, weight.device, intermediate_dtype
+                    ),
+                    comfy.model_management.cast_to_device(
+                        w1b, weight.device, intermediate_dtype
+                    ),
+                )
+                m2 = torch.mm(
+                    comfy.model_management.cast_to_device(
+                        w2a, weight.device, intermediate_dtype
+                    ),
+                    comfy.model_management.cast_to_device(
+                        w2b, weight.device, intermediate_dtype
+                    ),
+                )
 
             try:
                 lora_diff = (m1 * m2).reshape(weight.shape)
                 if dora_scale is not None:
-                    weight = function(weight_decompose(dora_scale, weight, lora_diff, alpha, strength, intermediate_dtype))
+                    weight = function(
+                        weight_decompose(
+                            dora_scale,
+                            weight,
+                            lora_diff,
+                            alpha,
+                            strength,
+                            intermediate_dtype,
+                        )
+                    )
                 else:
-                    weight += function(((strength * alpha) * lora_diff).type(weight.dtype))
+                    weight += function(
+                        ((strength * alpha) * lora_diff).type(weight.dtype)
+                    )
             except Exception as e:
                 logging.error("ERROR {} {} {}".format(patch_type, key, e))
         elif patch_type == "glora":
@@ -549,16 +786,28 @@ def calculate_weight(patches, weight, key, intermediate_dtype=torch.float32):
                 old_glora = True
 
             if v[3].shape[0] == v[2].shape[1] == v[0].shape[1] == v[1].shape[0]:
-                if old_glora and v[1].shape[0] == weight.shape[0] and weight.shape[0] == weight.shape[1]:
+                if (
+                    old_glora
+                    and v[1].shape[0] == weight.shape[0]
+                    and weight.shape[0] == weight.shape[1]
+                ):
                     pass
                 else:
                     old_glora = False
                     rank = v[1].shape[0]
 
-            a1 = comfy.model_management.cast_to_device(v[0].flatten(start_dim=1), weight.device, intermediate_dtype)
-            a2 = comfy.model_management.cast_to_device(v[1].flatten(start_dim=1), weight.device, intermediate_dtype)
-            b1 = comfy.model_management.cast_to_device(v[2].flatten(start_dim=1), weight.device, intermediate_dtype)
-            b2 = comfy.model_management.cast_to_device(v[3].flatten(start_dim=1), weight.device, intermediate_dtype)
+            a1 = comfy.model_management.cast_to_device(
+                v[0].flatten(start_dim=1), weight.device, intermediate_dtype
+            )
+            a2 = comfy.model_management.cast_to_device(
+                v[1].flatten(start_dim=1), weight.device, intermediate_dtype
+            )
+            b1 = comfy.model_management.cast_to_device(
+                v[2].flatten(start_dim=1), weight.device, intermediate_dtype
+            )
+            b2 = comfy.model_management.cast_to_device(
+                v[3].flatten(start_dim=1), weight.device, intermediate_dtype
+            )
 
             if v[4] is not None:
                 alpha = v[4] / rank
@@ -567,18 +816,50 @@ def calculate_weight(patches, weight, key, intermediate_dtype=torch.float32):
 
             try:
                 if old_glora:
-                    lora_diff = (torch.mm(b2, b1) + torch.mm(torch.mm(weight.flatten(start_dim=1).to(dtype=intermediate_dtype), a2), a1)).reshape(weight.shape) #old lycoris glora
+                    lora_diff = (
+                        torch.mm(b2, b1)
+                        + torch.mm(
+                            torch.mm(
+                                weight.flatten(start_dim=1).to(
+                                    dtype=intermediate_dtype
+                                ),
+                                a2,
+                            ),
+                            a1,
+                        )
+                    ).reshape(weight.shape)  # old lycoris glora
                 else:
                     if weight.dim() > 2:
-                        lora_diff = torch.einsum("o i ..., i j -> o j ...", torch.einsum("o i ..., i j -> o j ...", weight.to(dtype=intermediate_dtype), a1), a2).reshape(weight.shape)
+                        lora_diff = torch.einsum(
+                            "o i ..., i j -> o j ...",
+                            torch.einsum(
+                                "o i ..., i j -> o j ...",
+                                weight.to(dtype=intermediate_dtype),
+                                a1,
+                            ),
+                            a2,
+                        ).reshape(weight.shape)
                     else:
-                        lora_diff = torch.mm(torch.mm(weight.to(dtype=intermediate_dtype), a1), a2).reshape(weight.shape)
+                        lora_diff = torch.mm(
+                            torch.mm(weight.to(dtype=intermediate_dtype), a1), a2
+                        ).reshape(weight.shape)
                     lora_diff += torch.mm(b1, b2).reshape(weight.shape)
 
                 if dora_scale is not None:
-                    weight = function(weight_decompose(dora_scale, weight, lora_diff, alpha, strength, intermediate_dtype))
+                    weight = function(
+                        weight_decompose(
+                            dora_scale,
+                            weight,
+                            lora_diff,
+                            alpha,
+                            strength,
+                            intermediate_dtype,
+                        )
+                    )
                 else:
-                    weight += function(((strength * alpha) * lora_diff).type(weight.dtype))
+                    weight += function(
+                        ((strength * alpha) * lora_diff).type(weight.dtype)
+                    )
             except Exception as e:
                 logging.error("ERROR {} {} {}".format(patch_type, key, e))
         else:

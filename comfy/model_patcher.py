@@ -1,19 +1,19 @@
 """
-    This file is part of ComfyUI.
-    Copyright (C) 2024 Comfy
+This file is part of ComfyUI.
+Copyright (C) 2024 Comfy
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import torch
@@ -30,6 +30,7 @@ import comfy.model_management
 import comfy.lora
 from comfy.comfy_types import UnetWrapperFunction
 
+
 def string_to_seed(data):
     crc = 0xFFFFFFFF
     for byte in data:
@@ -43,7 +44,10 @@ def string_to_seed(data):
                 crc >>= 1
     return crc ^ 0xFFFFFFFF
 
-def set_model_options_patch_replace(model_options, patch, name, block_name, number, transformer_index=None):
+
+def set_model_options_patch_replace(
+    model_options, patch, name, block_name, number, transformer_index=None
+):
     to = model_options["transformer_options"].copy()
 
     if "patches_replace" not in to:
@@ -64,17 +68,28 @@ def set_model_options_patch_replace(model_options, patch, name, block_name, numb
     model_options["transformer_options"] = to
     return model_options
 
-def set_model_options_post_cfg_function(model_options, post_cfg_function, disable_cfg1_optimization=False):
-    model_options["sampler_post_cfg_function"] = model_options.get("sampler_post_cfg_function", []) + [post_cfg_function]
+
+def set_model_options_post_cfg_function(
+    model_options, post_cfg_function, disable_cfg1_optimization=False
+):
+    model_options["sampler_post_cfg_function"] = model_options.get(
+        "sampler_post_cfg_function", []
+    ) + [post_cfg_function]
     if disable_cfg1_optimization:
         model_options["disable_cfg1_optimization"] = True
     return model_options
 
-def set_model_options_pre_cfg_function(model_options, pre_cfg_function, disable_cfg1_optimization=False):
-    model_options["sampler_pre_cfg_function"] = model_options.get("sampler_pre_cfg_function", []) + [pre_cfg_function]
+
+def set_model_options_pre_cfg_function(
+    model_options, pre_cfg_function, disable_cfg1_optimization=False
+):
+    model_options["sampler_pre_cfg_function"] = model_options.get(
+        "sampler_pre_cfg_function", []
+    ) + [pre_cfg_function]
     if disable_cfg1_optimization:
         model_options["disable_cfg1_optimization"] = True
     return model_options
+
 
 def wipe_lowvram_weight(m):
     if hasattr(m, "prev_comfy_cast_weights"):
@@ -83,18 +98,25 @@ def wipe_lowvram_weight(m):
     m.weight_function = None
     m.bias_function = None
 
+
 class LowVramPatch:
     def __init__(self, key, patches):
         self.key = key
         self.patches = patches
+
     def __call__(self, weight):
-        return comfy.lora.calculate_weight(self.patches[self.key], weight, self.key, intermediate_dtype=weight.dtype)
+        return comfy.lora.calculate_weight(
+            self.patches[self.key], weight, self.key, intermediate_dtype=weight.dtype
+        )
+
 
 class ModelPatcher:
-    def __init__(self, model, load_device, offload_device, size=0, weight_inplace_update=False):
+    def __init__(
+        self, model, load_device, offload_device, size=0, weight_inplace_update=False
+    ):
         self.size = size
         self.model = model
-        if not hasattr(self.model, 'device'):
+        if not hasattr(self.model, "device"):
             logging.debug("Model doesn't have a device attribute.")
             self.model.device = offload_device
         elif self.model.device is None:
@@ -104,20 +126,20 @@ class ModelPatcher:
         self.backup = {}
         self.object_patches = {}
         self.object_patches_backup = {}
-        self.model_options = {"transformer_options":{}}
+        self.model_options = {"transformer_options": {}}
         self.model_size()
         self.load_device = load_device
         self.offload_device = offload_device
         self.weight_inplace_update = weight_inplace_update
         self.patches_uuid = uuid.uuid4()
 
-        if not hasattr(self.model, 'model_loaded_weight_memory'):
+        if not hasattr(self.model, "model_loaded_weight_memory"):
             self.model.model_loaded_weight_memory = 0
 
-        if not hasattr(self.model, 'lowvram_patch_counter'):
+        if not hasattr(self.model, "lowvram_patch_counter"):
             self.model.lowvram_patch_counter = 0
 
-        if not hasattr(self.model, 'model_lowvram'):
+        if not hasattr(self.model, "model_lowvram"):
             self.model.model_lowvram = False
 
     def model_size(self):
@@ -133,7 +155,13 @@ class ModelPatcher:
         return self.model.lowvram_patch_counter
 
     def clone(self):
-        n = ModelPatcher(self.model, self.load_device, self.offload_device, self.size, weight_inplace_update=self.weight_inplace_update)
+        n = ModelPatcher(
+            self.model,
+            self.load_device,
+            self.offload_device,
+            self.size,
+            weight_inplace_update=self.weight_inplace_update,
+        )
         n.patches = {}
         for k in self.patches:
             n.patches[k] = self.patches[k][:]
@@ -146,7 +174,7 @@ class ModelPatcher:
         return n
 
     def is_clone(self, other):
-        if hasattr(other, 'model') and self.model is other.model:
+        if hasattr(other, "model") and self.model is other.model:
             return True
         return False
 
@@ -159,28 +187,46 @@ class ModelPatcher:
 
         if self.patches_uuid == clone.patches_uuid:
             if len(self.patches) != len(clone.patches):
-                logging.warning("WARNING: something went wrong, same patch uuid but different length of patches.")
+                logging.warning(
+                    "WARNING: something went wrong, same patch uuid but different length of patches."
+                )
             else:
                 return True
 
     def memory_required(self, input_shape):
         return self.model.memory_required(input_shape=input_shape)
 
-    def set_model_sampler_cfg_function(self, sampler_cfg_function, disable_cfg1_optimization=False):
+    def set_model_sampler_cfg_function(
+        self, sampler_cfg_function, disable_cfg1_optimization=False
+    ):
         if len(inspect.signature(sampler_cfg_function).parameters) == 3:
-            self.model_options["sampler_cfg_function"] = lambda args: sampler_cfg_function(args["cond"], args["uncond"], args["cond_scale"]) #Old way
+            self.model_options["sampler_cfg_function"] = (
+                lambda args: sampler_cfg_function(
+                    args["cond"], args["uncond"], args["cond_scale"]
+                )
+            )  # Old way
         else:
             self.model_options["sampler_cfg_function"] = sampler_cfg_function
         if disable_cfg1_optimization:
             self.model_options["disable_cfg1_optimization"] = True
 
-    def set_model_sampler_post_cfg_function(self, post_cfg_function, disable_cfg1_optimization=False):
-        self.model_options = set_model_options_post_cfg_function(self.model_options, post_cfg_function, disable_cfg1_optimization)
+    def set_model_sampler_post_cfg_function(
+        self, post_cfg_function, disable_cfg1_optimization=False
+    ):
+        self.model_options = set_model_options_post_cfg_function(
+            self.model_options, post_cfg_function, disable_cfg1_optimization
+        )
 
-    def set_model_sampler_pre_cfg_function(self, pre_cfg_function, disable_cfg1_optimization=False):
-        self.model_options = set_model_options_pre_cfg_function(self.model_options, pre_cfg_function, disable_cfg1_optimization)
+    def set_model_sampler_pre_cfg_function(
+        self, pre_cfg_function, disable_cfg1_optimization=False
+    ):
+        self.model_options = set_model_options_pre_cfg_function(
+            self.model_options, pre_cfg_function, disable_cfg1_optimization
+        )
 
-    def set_model_unet_function_wrapper(self, unet_wrapper_function: UnetWrapperFunction):
+    def set_model_unet_function_wrapper(
+        self, unet_wrapper_function: UnetWrapperFunction
+    ):
         self.model_options["model_function_wrapper"] = unet_wrapper_function
 
     def set_model_denoise_mask_function(self, denoise_mask_function):
@@ -192,8 +238,17 @@ class ModelPatcher:
             to["patches"] = {}
         to["patches"][name] = to["patches"].get(name, []) + [patch]
 
-    def set_model_patch_replace(self, patch, name, block_name, number, transformer_index=None):
-        self.model_options = set_model_options_patch_replace(self.model_options, patch, name, block_name, number, transformer_index=transformer_index)
+    def set_model_patch_replace(
+        self, patch, name, block_name, number, transformer_index=None
+    ):
+        self.model_options = set_model_options_patch_replace(
+            self.model_options,
+            patch,
+            name,
+            block_name,
+            number,
+            transformer_index=transformer_index,
+        )
 
     def set_model_attn1_patch(self, patch):
         self.set_model_patch(patch, "attn1_patch")
@@ -201,11 +256,19 @@ class ModelPatcher:
     def set_model_attn2_patch(self, patch):
         self.set_model_patch(patch, "attn2_patch")
 
-    def set_model_attn1_replace(self, patch, block_name, number, transformer_index=None):
-        self.set_model_patch_replace(patch, "attn1", block_name, number, transformer_index)
+    def set_model_attn1_replace(
+        self, patch, block_name, number, transformer_index=None
+    ):
+        self.set_model_patch_replace(
+            patch, "attn1", block_name, number, transformer_index
+        )
 
-    def set_model_attn2_replace(self, patch, block_name, number, transformer_index=None):
-        self.set_model_patch_replace(patch, "attn2", block_name, number, transformer_index)
+    def set_model_attn2_replace(
+        self, patch, block_name, number, transformer_index=None
+    ):
+        self.set_model_patch_replace(
+            patch, "attn2", block_name, number, transformer_index
+        )
 
     def set_model_attn1_output_patch(self, patch):
         self.set_model_patch(patch, "attn1_output_patch")
@@ -276,7 +339,9 @@ class ModelPatcher:
             if key in model_sd:
                 p.add(k)
                 current_patches = self.patches.get(key, [])
-                current_patches.append((strength_patch, patches[k], strength_model, offset, function))
+                current_patches.append(
+                    (strength_patch, patches[k], strength_model, offset, function)
+                )
                 self.patches[key] = current_patches
 
         self.patches_uuid = uuid.uuid4()
@@ -318,20 +383,35 @@ class ModelPatcher:
         inplace_update = self.weight_inplace_update or inplace_update
 
         if key not in self.backup:
-            self.backup[key] = collections.namedtuple('Dimension', ['weight', 'inplace_update'])(weight.to(device=self.offload_device, copy=inplace_update), inplace_update)
+            self.backup[key] = collections.namedtuple(
+                "Dimension", ["weight", "inplace_update"]
+            )(
+                weight.to(device=self.offload_device, copy=inplace_update),
+                inplace_update,
+            )
 
         if device_to is not None:
-            temp_weight = comfy.model_management.cast_to_device(weight, device_to, torch.float32, copy=True)
+            temp_weight = comfy.model_management.cast_to_device(
+                weight, device_to, torch.float32, copy=True
+            )
         else:
             temp_weight = weight.to(torch.float32, copy=True)
         out_weight = comfy.lora.calculate_weight(self.patches[key], temp_weight, key)
-        out_weight = comfy.float.stochastic_rounding(out_weight, weight.dtype, seed=string_to_seed(key))
+        out_weight = comfy.float.stochastic_rounding(
+            out_weight, weight.dtype, seed=string_to_seed(key)
+        )
         if inplace_update:
             comfy.utils.copy_to_param(self.model, key, out_weight)
         else:
             comfy.utils.set_attr_param(self.model, key, out_weight)
 
-    def load(self, device_to=None, lowvram_model_memory=0, force_patch_weights=False, full_load=False):
+    def load(
+        self,
+        device_to=None,
+        lowvram_model_memory=0,
+        force_patch_weights=False,
+        full_load=False,
+    ):
         mem_counter = 0
         patch_counter = 0
         lowvram_counter = 0
@@ -353,7 +433,7 @@ class ModelPatcher:
                 if mem_counter + module_mem >= lowvram_model_memory:
                     lowvram_weight = True
                     lowvram_counter += 1
-                    if hasattr(m, "prev_comfy_cast_weights"): #Already lowvramed
+                    if hasattr(m, "prev_comfy_cast_weights"):  # Already lowvramed
                         continue
 
             weight_key = "{}.weight".format(n)
@@ -403,10 +483,22 @@ class ModelPatcher:
             x[2].to(device_to)
 
         if lowvram_counter > 0:
-            logging.info("loaded partially {} {} {}".format(lowvram_model_memory / (1024 * 1024), mem_counter / (1024 * 1024), patch_counter))
+            logging.info(
+                "loaded partially {} {} {}".format(
+                    lowvram_model_memory / (1024 * 1024),
+                    mem_counter / (1024 * 1024),
+                    patch_counter,
+                )
+            )
             self.model.model_lowvram = True
         else:
-            logging.info("loaded completely {} {} {}".format(lowvram_model_memory / (1024 * 1024), mem_counter / (1024 * 1024), full_load))
+            logging.info(
+                "loaded completely {} {} {}".format(
+                    lowvram_model_memory / (1024 * 1024),
+                    mem_counter / (1024 * 1024),
+                    full_load,
+                )
+            )
             self.model.model_lowvram = False
             if full_load:
                 self.model.to(device_to)
@@ -416,7 +508,13 @@ class ModelPatcher:
         self.model.device = device_to
         self.model.model_loaded_weight_memory = mem_counter
 
-    def patch_model(self, device_to=None, lowvram_model_memory=0, load_weights=True, force_patch_weights=False):
+    def patch_model(
+        self,
+        device_to=None,
+        lowvram_model_memory=0,
+        load_weights=True,
+        force_patch_weights=False,
+    ):
         for k in self.object_patches:
             old = comfy.utils.set_attr(self.model, k, self.object_patches[k])
             if k not in self.object_patches_backup:
@@ -428,7 +526,12 @@ class ModelPatcher:
             full_load = False
 
         if load_weights:
-            self.load(device_to, lowvram_model_memory=lowvram_model_memory, force_patch_weights=force_patch_weights, full_load=full_load)
+            self.load(
+                device_to,
+                lowvram_model_memory=lowvram_model_memory,
+                force_patch_weights=force_patch_weights,
+                full_load=full_load,
+            )
         return self.model
 
     def unpatch_model(self, device_to=None, unpatch_weights=True):
@@ -525,12 +628,20 @@ class ModelPatcher:
         if self.model.model_loaded_weight_memory + extra_memory > self.model_size():
             full_load = True
         current_used = self.model.model_loaded_weight_memory
-        self.load(device_to, lowvram_model_memory=current_used + extra_memory, full_load=full_load)
+        self.load(
+            device_to,
+            lowvram_model_memory=current_used + extra_memory,
+            full_load=full_load,
+        )
         return self.model.model_loaded_weight_memory - current_used
 
     def current_loaded_device(self):
         return self.model.device
 
     def calculate_weight(self, patches, weight, key, intermediate_dtype=torch.float32):
-        print("WARNING the ModelPatcher.calculate_weight function is deprecated, please use: comfy.lora.calculate_weight instead")
-        return comfy.lora.calculate_weight(patches, weight, key, intermediate_dtype=intermediate_dtype)
+        print(
+            "WARNING the ModelPatcher.calculate_weight function is deprecated, please use: comfy.lora.calculate_weight instead"
+        )
+        return comfy.lora.calculate_weight(
+            patches, weight, key, intermediate_dtype=intermediate_dtype
+        )

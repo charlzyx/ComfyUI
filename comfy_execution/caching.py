@@ -13,8 +13,11 @@ def include_unique_id_in_input(class_type: str) -> bool:
     if class_type in NODE_CLASS_CONTAINS_UNIQUE_ID:
         return NODE_CLASS_CONTAINS_UNIQUE_ID[class_type]
     class_def = nodes.NODE_CLASS_MAPPINGS[class_type]
-    NODE_CLASS_CONTAINS_UNIQUE_ID[class_type] = "UNIQUE_ID" in class_def.INPUT_TYPES().get("hidden", {}).values()
+    NODE_CLASS_CONTAINS_UNIQUE_ID[class_type] = (
+        "UNIQUE_ID" in class_def.INPUT_TYPES().get("hidden", {}).values()
+    )
     return NODE_CLASS_CONTAINS_UNIQUE_ID[class_type]
+
 
 class CacheKeySet:
     def __init__(self, dynprompt, node_ids, is_changed_cache):
@@ -39,9 +42,11 @@ class CacheKeySet:
     def get_subcache_key(self, node_id):
         return self.subcache_keys.get(node_id, None)
 
+
 class Unhashable:
     def __init__(self):
         self.value = float("NaN")
+
 
 def to_hashable(obj):
     # So that we don't infinitely recurse since frozenset and tuples
@@ -49,12 +54,15 @@ def to_hashable(obj):
     if isinstance(obj, (int, float, str, bool, type(None))):
         return obj
     elif isinstance(obj, Mapping):
-        return frozenset([(to_hashable(k), to_hashable(v)) for k, v in sorted(obj.items())])
+        return frozenset(
+            [(to_hashable(k), to_hashable(v)) for k, v in sorted(obj.items())]
+        )
     elif isinstance(obj, Sequence):
         return frozenset(zip(itertools.count(), [to_hashable(i) for i in obj]))
     else:
         # TODO - Support other objects like tensors?
         return Unhashable()
+
 
 class CacheKeySetID(CacheKeySet):
     def __init__(self, dynprompt, node_ids, is_changed_cache):
@@ -71,6 +79,7 @@ class CacheKeySetID(CacheKeySet):
             node = self.dynprompt.get_node(node_id)
             self.keys[node_id] = (node_id, node["class_type"])
             self.subcache_keys[node_id] = (node_id, node["class_type"])
+
 
 class CacheKeySetInputSignature(CacheKeySet):
     def __init__(self, dynprompt, node_ids, is_changed_cache):
@@ -95,9 +104,13 @@ class CacheKeySetInputSignature(CacheKeySet):
     def get_node_signature(self, dynprompt, node_id):
         signature = []
         ancestors, order_mapping = self.get_ordered_ancestry(dynprompt, node_id)
-        signature.append(self.get_immediate_node_signature(dynprompt, node_id, order_mapping))
+        signature.append(
+            self.get_immediate_node_signature(dynprompt, node_id, order_mapping)
+        )
         for ancestor_id in ancestors:
-            signature.append(self.get_immediate_node_signature(dynprompt, ancestor_id, order_mapping))
+            signature.append(
+                self.get_immediate_node_signature(dynprompt, ancestor_id, order_mapping)
+            )
         return to_hashable(signature)
 
     def get_immediate_node_signature(self, dynprompt, node_id, ancestor_order_mapping):
@@ -108,14 +121,18 @@ class CacheKeySetInputSignature(CacheKeySet):
         class_type = node["class_type"]
         class_def = nodes.NODE_CLASS_MAPPINGS[class_type]
         signature = [class_type, self.is_changed_cache.get(node_id)]
-        if self.include_node_id_in_input() or (hasattr(class_def, "NOT_IDEMPOTENT") and class_def.NOT_IDEMPOTENT) or include_unique_id_in_input(class_type):
+        if (
+            self.include_node_id_in_input()
+            or (hasattr(class_def, "NOT_IDEMPOTENT") and class_def.NOT_IDEMPOTENT)
+            or include_unique_id_in_input(class_type)
+        ):
             signature.append(node_id)
         inputs = node["inputs"]
         for key in sorted(inputs.keys()):
             if is_link(inputs[key]):
                 (ancestor_id, ancestor_socket) = inputs[key]
                 ancestor_index = ancestor_order_mapping[ancestor_id]
-                signature.append((key,("ANCESTOR", ancestor_index, ancestor_socket)))
+                signature.append((key, ("ANCESTOR", ancestor_index, ancestor_socket)))
             else:
                 signature.append((key, inputs[key]))
         return signature
@@ -128,7 +145,9 @@ class CacheKeySetInputSignature(CacheKeySet):
         self.get_ordered_ancestry_internal(dynprompt, node_id, ancestors, order_mapping)
         return ancestors, order_mapping
 
-    def get_ordered_ancestry_internal(self, dynprompt, node_id, ancestors, order_mapping):
+    def get_ordered_ancestry_internal(
+        self, dynprompt, node_id, ancestors, order_mapping
+    ):
         if not dynprompt.has_node(node_id):
             return
         inputs = dynprompt.get_node(node_id)["inputs"]
@@ -139,7 +158,10 @@ class CacheKeySetInputSignature(CacheKeySet):
                 if ancestor_id not in order_mapping:
                     ancestors.append(ancestor_id)
                     order_mapping[ancestor_id] = len(ancestors) - 1
-                    self.get_ordered_ancestry_internal(dynprompt, ancestor_id, ancestors, order_mapping)
+                    self.get_ordered_ancestry_internal(
+                        dynprompt, ancestor_id, ancestors, order_mapping
+                    )
+
 
 class BasicCache:
     def __init__(self, key_class):
@@ -223,8 +245,14 @@ class BasicCache:
         for key in self.cache:
             result.append({"key": key, "value": self.cache[key]})
         for key in self.subcaches:
-            result.append({"subcache_key": key, "subcache": self.subcaches[key].recursive_debug_dump()})
+            result.append(
+                {
+                    "subcache_key": key,
+                    "subcache": self.subcaches[key].recursive_debug_dump(),
+                }
+            )
         return result
+
 
 class HierarchicalCache(BasicCache):
     def __init__(self, key_class):
@@ -264,6 +292,7 @@ class HierarchicalCache(BasicCache):
         assert cache is not None
         return cache._ensure_subcache(node_id, children_ids)
 
+
 class LRUCache(BasicCache):
     def __init__(self, key_class, max_size=100):
         super().__init__(key_class)
@@ -282,7 +311,11 @@ class LRUCache(BasicCache):
     def clean_unused(self):
         while len(self.cache) > self.max_size and self.min_generation < self.generation:
             self.min_generation += 1
-            to_remove = [key for key in self.cache if self.used_generation[key] < self.min_generation]
+            to_remove = [
+                key
+                for key in self.cache
+                if self.used_generation[key] < self.min_generation
+            ]
             for key in to_remove:
                 del self.cache[key]
                 del self.used_generation[key]
@@ -315,4 +348,3 @@ class LRUCache(BasicCache):
             self._mark_used(child_id)
             self.children[cache_key].append(self.cache_key_set.get_data_key(child_id))
         return self
-
